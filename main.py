@@ -27,23 +27,23 @@ def send_whole_simulation(simulation_data):
 
 # --- Parámetros del modelo ---
 SPAWN_RATE_EXPLORER = 1
-GRID_SIZE = 6
-PEATON_NUMBER = 100
-DOME_NUMBER = 20
+GRID_SIZE = 12
+PEATON_NUMBER = 150
+DOME_NUMBER = 80
 N_STEPS = 200
 DAY_NIGHT_TIME = 10
-OXYGEN_N = 10
+OXYGEN_N = 100
 N_ANUNCIOS = 20
 N_DEFENSESYSTMES = 20
-N_SOLAR_PANELS = 20
-N_ALIENPLANTS = 30
-N_FOODTRUCK = 20
+N_SOLAR_PANELS = 50
+N_ALIENPLANTS = 180
+N_FOODTRUCK = 40
 N_PUBLICLAMP = 30
-N_SPACEEQUIPMENT = 10
+N_SPACEEQUIPMENT = 80
 DOMES_Z_VALUE = 0
-OXYGEN_Z_VALUE = 1
+OXYGEN_Z_VALUE = 0
 PEATON_Z_VALUE = 0
-EXPLORERS_Z_VALUE = 1
+EXPLORERS_Z_VALUE = 0
 
 
 # --- 1. Define la tabla de color-a-número ---
@@ -264,24 +264,26 @@ class Dome(ap.Agent):
         self.x, self.y = map(int, px)
 
     def action(self):
-        new_explorers = []
-        for _ in range(self.spawn_rate):
-            explorer = MovingAgent(self.model)
-            explorer.dome_id = self.id
-            self.spawned_explorers.append(explorer)
-            new_explorers.append(explorer)
-            self.model.agents.append(explorer)
-            self.model.all_agents.append(explorer)
+        # Check if it's time to spawn explorers
+        if self.model.steps_counter % self.model.spawn_interval == 0: # Añadido
+            new_explorers = []
+            for _ in range(self.spawn_rate):
+                explorer = MovingAgent(self.model)
+                explorer.dome_id = self.id
+                self.spawned_explorers.append(explorer)
+                new_explorers.append(explorer)
+                self.model.agents.append(explorer)
+                self.model.all_agents.append(explorer)
 
-            # Spawnear al explorer en celdas 7 
-            valid_positions = np.argwhere(city_grid == 7)
-            px = valid_positions[np.random.randint(len(valid_positions))]
-            explorer.x, explorer.y = map(int, px)
+                # Spawnear al explorer en celdas 7 (manualmente)
+                valid_positions = np.argwhere(city_grid == 7)
+                px = valid_positions[np.random.randint(len(valid_positions))]
+                explorer.x, explorer.y = map(int, px)
 
         # Si todos sus explorers tienen oxígeno <= 0 => remove dome
         if self.spawned_explorers and all(ex.oxigenLevel <= 0 for ex in self.spawned_explorers):
             self.model.remove_agent(self)
-        
+            #print(f"Dome {self.id} ha desaparecido.")
 
 class OxigenPoint(ap.Agent):
     """
@@ -373,6 +375,9 @@ class Sol(ap.Agent):
 class CityModel(ap.Model):
     def setup(self):
         self.grid = city_grid
+
+        self.steps_counter = 0
+        self.spawn_interval = 3
 
         # 1) Domes
         self.domeAgents = ap.AgentList(self, DOME_NUMBER, Dome)
@@ -558,6 +563,9 @@ class CityModel(ap.Model):
 
     def step(self):
         # a) Semáforos
+
+
+
         for s in self.semaforos:
             s.step()
 
@@ -606,6 +614,9 @@ class CityModel(ap.Model):
             self.oxygen_points.remove(agent)
 
     def collect_step_data(self):
+
+        if "semaforos_steps" not in self.simulation_data:
+            self.simulation_data["semaforos_steps"] = []
         explorer_data_dict = {
             "step" :int(self.steps_counter),
             "agents":[
@@ -638,9 +649,24 @@ class CityModel(ap.Model):
 
         }
 
+        semaforos_data_dict = {
+            "step": int(self.steps_counter),
+            "semaforos": [
+                {
+                    "id": int(semaforo.id),
+                    "x": int(semaforo.x),
+                    "y": int(semaforo.y),
+                    "state": semaforo.state == 'GREEN'  # True si es verde, False si es rojo
+                }
+                for semaforo in self.semaforos
+            ]
+        }
+
         self.simulation_data["explorers_steps"].append(explorer_data_dict)
 
         self.simulation_data["peatones_positions"].append(peatones_data_dict)
+
+        self.simulation_data["semaforos_steps"].append(semaforos_data_dict)
 
 
 
