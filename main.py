@@ -273,7 +273,7 @@ class Dome(ap.Agent):
             self.model.agents.append(explorer)
             self.model.all_agents.append(explorer)
 
-            # Spawnear al explorer en celdas 7 (manualmente)
+            # Spawnear al explorer en celdas 7 
             valid_positions = np.argwhere(city_grid == 7)
             px = valid_positions[np.random.randint(len(valid_positions))]
             explorer.x, explorer.y = map(int, px)
@@ -281,7 +281,7 @@ class Dome(ap.Agent):
         # Si todos sus explorers tienen oxígeno <= 0 => remove dome
         if self.spawned_explorers and all(ex.oxigenLevel <= 0 for ex in self.spawned_explorers):
             self.model.remove_agent(self)
-            #print(f"Dome {self.id} ha desaparecido.")
+        
 
 class OxigenPoint(ap.Agent):
     """
